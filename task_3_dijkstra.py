@@ -1,44 +1,45 @@
 import heapq
-from math import inf
-from typing import Dict, List, Tuple, Any
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
-Graph = Dict[Any, List[Tuple[Any, float]]]
-
-
-def dijkstra(graph: Graph, start: Any) -> Tuple[Dict[Any, float], Dict[Any, Any]]:
+def dijkstra_heap(graph: nx.Graph, start):
     """
+    Алгоритм Дейкстри з бінарною купою (heapq).
     Повертає:
-      dist[v] = найкоротша відстань від start до v
-      prev[v] = попередник v у найкоротшому шляху (для відновлення маршруту)
+      dist  - найкоротші відстані від start до всіх вершин
+      prev  - попередники для відновлення маршруту
     """
-    dist: Dict[Any, float] = {v: inf for v in graph}
-    prev: Dict[Any, Any] = {v: None for v in graph}
+    # Ініціалізація: всім нескінченність, старту 0
+    dist = {v: float("inf") for v in graph.nodes}
+    prev = {v: None for v in graph.nodes}
+    dist[start] = 0
 
-    dist[start] = 0.0
-    heap: List[Tuple[float, Any]] = [(0.0, start)]  # (distance, vertex)
+    # Купа містить пари (поточна_відстань, вершина)
+    heap = [(0, start)]
 
     while heap:
         cur_dist, u = heapq.heappop(heap)
 
-        # Якщо витягли "застарілий" запис — пропускаємо
+        # Якщо витягнули "застарілий" запис — пропускаємо
         if cur_dist != dist[u]:
             continue
 
-        for v, w in graph[u]:
-            if w < 0:
-                raise ValueError("Dijkstra не працює з від’ємними вагами ребер.")
-            nd = cur_dist + w
-            if nd < dist[v]:
-                dist[v] = nd
+        # Релаксація ребер
+        for v, attrs in graph[u].items():
+            w = attrs.get("weight", 1)  # якщо ваги нема — вважаємо 1
+            new_dist = cur_dist + w
+
+            if new_dist < dist[v]:
+                dist[v] = new_dist
                 prev[v] = u
-                heapq.heappush(heap, (nd, v))
+                heapq.heappush(heap, (new_dist, v))
 
     return dist, prev
 
 
-def restore_path(prev: Dict[Any, Any], start: Any, target: Any) -> List[Any]:
-    """Відновлює шлях start -> target за словником prev."""
+def restore_path(prev, start, target):
+    """Відновлення шляху start -> target за словником prev."""
     if start == target:
         return [start]
 
@@ -46,35 +47,87 @@ def restore_path(prev: Dict[Any, Any], start: Any, target: Any) -> List[Any]:
     cur = target
     while cur is not None:
         path.append(cur)
+        if cur == start:
+            break
         cur = prev[cur]
-    path.reverse()
 
+    path.reverse()
+    # Якщо старт не досягнуто — шляху нема
     if not path or path[0] != start:
-        return []  # недосяжно
+        return []
     return path
 
 
-def main():
-    # Приклад графа
-    graph: Graph = {
-        "A": [("B", 4), ("C", 2)],
-        "B": [("A", 4), ("C", 1), ("D", 5)],
-        "C": [("A", 2), ("B", 1), ("D", 8), ("E", 10)],
-        "D": [("B", 5), ("C", 8), ("E", 2)],
-        "E": [("C", 10), ("D", 2)],
-    }
+def build_weighted_graph():
+    """
+    Приклад: умовна 'транспортна лінія' (станції з твого списку).
+    Ваги — умовні (наприклад, хвилини між станціями).
+    """
+    G = nx.Graph()
 
-    start = "A"
-    dist, prev = dijkstra(graph, start)
+    edges = [
+        ("Bakirkoy", "Zeytinburnu", 6),
+        ("Zeytinburnu", "Topkapi", 5),
+        ("Topkapi", "Aksaray", 4),
+        ("Aksaray", "Yenikapi", 3),
+        ("Yenikapi", "Taksim", 10),
+        ("Taksim", "Sisli", 4),
+        ("Sisli", "Mecidiyekoy", 3),
+        ("Mecidiyekoy", "Levent", 6),
+        # Додамо альтернативне ребро для варіативності
+        ("Aksaray", "Taksim", 12),
+    ]
 
-    print("Найкоротші відстані від", start)
-    for v in dist:
-        print(f"  {v}: {dist[v]}")
+    for u, v, w in edges:
+        G.add_edge(u, v, weight=w)
 
-    target = "E"
-    path = restore_path(prev, start, target)
-    print(f"\nШлях {start} -> {target}:", " -> ".join(path) if path else "недосяжно")
+    return G
+
+
+def draw_and_save_png(G: nx.Graph, filename="graph.png"):
+    """
+    Візуалізація графа і збереження в PNG.
+    """
+    plt.figure(figsize=(12, 6))
+
+    # Розкладка вузлів (щоб виглядало стабільно)
+    pos = nx.spring_layout(G, seed=42)
+
+    # Малюємо вершини/ребра
+    nx.draw_networkx_nodes(G, pos, node_size=1200)
+    nx.draw_networkx_edges(G, pos, width=2)
+    nx.draw_networkx_labels(G, pos, font_size=10)
+
+    # Підписи ваг ребер
+    edge_labels = nx.get_edge_attributes(G, "weight")
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=9)
+
+    plt.axis("off")
+    plt.savefig(filename, dpi=200, bbox_inches="tight")
+    plt.close()  # закриваємо фігуру, щоб не "залипала" в середовищі
 
 
 if __name__ == "__main__":
-    main()
+    G = build_weighted_graph()
+
+    # 1) Аналіз базових характеристик
+    print("К-сть вершин:", G.number_of_nodes())
+    print("К-сть ребер:", G.number_of_edges())
+    print("Ступені вершин:", dict(G.degree()))
+
+    # 2) Дейкстра з купою
+    start = "Bakirkoy"
+    dist, prev = dijkstra_heap(G, start)
+
+    print("\nНайкоротші відстані від", start)
+    for node in G.nodes:
+        print(f"  -> {node}: {dist[node]}")
+
+    # Приклад: відновимо шлях до Levent
+    target = "Levent"
+    path = restore_path(prev, start, target)
+    print(f"\nШлях {start} -> {target}:", " -> ".join(path) if path else "нема шляху")
+
+    # 3) Збережемо png
+    draw_and_save_png(G, filename="istanbul_graph.png")
+    print("\nPNG збережено у файл: istanbul_graph.png")
