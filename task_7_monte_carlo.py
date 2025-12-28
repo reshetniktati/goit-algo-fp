@@ -66,7 +66,7 @@ def plot_probabilities(mc: dict[int, float], an: dict[int, float]) -> None:
 
 
 def main() -> None:
-    n_rolls = 20_000  # можна змінити (чим більше — тим точніше)
+    n_rolls = 2_000  # можна змінити (чим більше — тим точніше, але довше працює)
     mc = simulate_dice_rolls(n_rolls=n_rolls, seed=42)
     an = analytical_probabilities()
 
@@ -74,7 +74,7 @@ def main() -> None:
     print_comparison_table(mc, an)
     plot_probabilities(mc, an)
 
-    # Короткий висновок для README:
+    # Короткий висновок:
     max_abs_diff = max(abs(mc[s] - an[s]) for s in range(2, 13))
     print("\nВисновок:")
     print(
