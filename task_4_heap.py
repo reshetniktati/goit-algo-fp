@@ -1,37 +1,52 @@
+from __future__ import annotations
+
 import uuid
-import heapq
+from collections import deque
+from typing import List, Tuple, Optional
+
 import networkx as nx
 import matplotlib.pyplot as plt
 
-
 class Node:
-    def __init__(self, key, color="skyblue"):
-        self.left = None
-        self.right = None
+    def __init__(self, key: int, color: str = "skyblue"):
+        self.left: Optional[Node] = None
+        self.right: Optional[Node] = None
         self.val = key
         self.color = color
         self.id = str(uuid.uuid4())
 
 
-def add_edges(graph, node, pos, x=0, y=0, layer=1):
-    """Рекурсивно додає вузли/ребра в граф та рахує координати для малювання."""
+def add_edges(graph: nx.DiGraph, node: Optional[Node], pos: dict, x=0, y=0, layer=1):
+    """Рекурсивно додає вузли й ребра в граф (лише для побудови структури)."""
     if node is not None:
         graph.add_node(node.id, color=node.color, label=node.val)
-
         if node.left:
             graph.add_edge(node.id, node.left.id)
-            lx = x - 1 / 2**layer
+            lx = x - 1 / 2 ** layer
             pos[node.left.id] = (lx, y - 1)
             add_edges(graph, node.left, pos, x=lx, y=y - 1, layer=layer + 1)
-
         if node.right:
             graph.add_edge(node.id, node.right.id)
-            rx = x + 1 / 2**layer
+            rx = x + 1 / 2 ** layer
             pos[node.right.id] = (rx, y - 1)
             add_edges(graph, node.right, pos, x=rx, y=y - 1, layer=layer + 1)
-
     return graph
 
+
+def heap_to_tree(heap: List[int]) -> Optional[Node]:
+    """Створює бінарне дерево з масиву купи (індексація: i -> 2i+1, 2i+2)."""
+    if not heap:
+        return None
+
+    nodes = [Node(v) for v in heap]
+    for i in range(len(nodes)):
+        li = 2 * i + 1
+        ri = 2 * i + 2
+        if li < len(nodes):
+            nodes[i].left = nodes[li]
+        if ri < len(nodes):
+            nodes[i].right = nodes[ri]
+    return nodes[0]
 
 def draw_tree(tree_root, *, save_path=None):
     """Малює дерево. Якщо save_path заданий — зберігає PNG."""
@@ -59,36 +74,9 @@ def draw_tree(tree_root, *, save_path=None):
     plt.show()
 
 
-def heap_to_tree(heap_list):
-    """
-    Перетворює бінарну купу (масив) у дерево Node.
-    Важливо: heap_list має відображати структуру купи в масиві.
-    """
-    if not heap_list:
-        return None
 
-    nodes = [Node(value) for value in heap_list]
-
-    for i in range(len(nodes)):
-        left_i = 2 * i + 1
-        right_i = 2 * i + 2
-
-        if left_i < len(nodes):
-            nodes[i].left = nodes[left_i]
-        if right_i < len(nodes):
-            nodes[i].right = nodes[right_i]
-
-    return nodes[0]
-
-
-# ====== ПРИКЛАД 1: якщо у тебе вже є купа у вигляді масиву ======
-heap_data = [0, 3, 1, 4, 10, 8, 2]
-root = heap_to_tree(heap_data)
-draw_tree(root, save_path="./heap.png")
-
-
-# ====== ПРИКЛАД 2: min-heap зі звичайного списку ======
-data = [10, 4, 7, 1, 3, 9, 2]
-heapq.heapify(data)  # тепер data — це min-heap у вигляді масиву
-root2 = heap_to_tree(data)
-draw_tree(root2, save_path="./heap_heapify.png")
+if __name__ == "__main__":
+    # приклад: мін-купа
+    heap = [1, 3, 6, 5, 9, 8]
+    root = heap_to_tree(heap)
+    draw_tree(root, save_path="heap_tree.png")

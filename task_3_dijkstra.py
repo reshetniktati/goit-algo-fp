@@ -74,7 +74,6 @@ def build_weighted_graph():
         ("Taksim", "Sisli", 4),
         ("Sisli", "Mecidiyekoy", 3),
         ("Mecidiyekoy", "Levent", 6),
-        # Додамо альтернативне ребро для варіативності
         ("Aksaray", "Taksim", 12),
     ]
 
