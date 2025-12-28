@@ -1,4 +1,3 @@
-# task3_dijkstra_heap.py
 import heapq
 from math import inf
 from typing import Dict, List, Tuple, Any
