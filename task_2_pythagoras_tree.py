@@ -1,78 +1,83 @@
 import turtle
-from math import cos, sin, radians
+import math
 
-def pythagoras_tree(x, y, size, angle, level, pen: turtle.Turtle):
-    """
-    Малює 'дерево Піфагора' рекурсивно:
-    - на кожному кроці малюємо квадрат
-    - з верхньої сторони квадрата будуємо 2 нові квадрати під кутами
-    """
+def draw_square(t: turtle.Turtle, size: float):
+    """Малює квадрат зі стороною size, починаючи з поточної позиції/напрямку."""
+    for _ in range(4):
+        t.forward(size)
+        t.left(90)
 
-    if level == 0 or size < 2:
+def pythagoras_tree(t: turtle.Turtle, size: float, depth: int, angle: float = 45.0):
+    """
+    Малює дерево Піфагора.
+    size  - розмір базового квадрату
+    depth - рівень рекурсії
+    angle - кут розгалуження (класично 45°)
+    """
+    if depth == 0 or size <= 1:
         return
 
-    # Розраховуємо 4 вершини квадрата (починаємо з точки (x, y))
-    a = (x, y)
-    b = (x + size * cos(radians(angle)), y + size * sin(radians(angle)))
-    c = (b[0] + size * cos(radians(angle + 90)), b[1] + size * sin(radians(angle + 90)))
-    d = (a[0] + size * cos(radians(angle + 90)), a[1] + size * sin(radians(angle + 90)))
+    # 1) Малюємо базовий квадрат
+    draw_square(t, size)
 
-    # Малюємо квадрат
-    pen.up()
-    pen.goto(a)
-    pen.down()
-    pen.goto(b)
-    pen.goto(c)
-    pen.goto(d)
-    pen.goto(a)
+    # 2) Переходимо на верхню сторону квадрату
+    t.forward(size)
+    t.left(90)
+    t.forward(size)
+    t.right(90)
 
-    # Дві нові "гілки" з верхньої сторони (між d і c)
-    # Класичний варіант
-    left_scale = 0.7
-    right_scale = 0.7
+    # Запам'ятаємо позицію/напрямок у точці старту "верхнього" квадрату
+    start_pos = t.position()
+    start_heading = t.heading()
 
-    # Ліва гілка стартує з точки d
-    pythagoras_tree(
-        d[0], d[1],
-        size * left_scale,
-        angle + 45,
-        level - 1,
-        pen
-    )
+    # 3) Ліва гілка: квадрат повернутий на +angle
+    t.left(angle)
+    left_size = size * math.cos(math.radians(angle))
+    pythagoras_tree(t, left_size, depth - 1, angle)
 
-    # Права гілка стартує з точки c
-    pythagoras_tree(
-        c[0], c[1],
-        size * right_scale,
-        angle - 45,
-        level - 1,
-        pen
-    )
+    # 4) Повертаємося назад у точку розгалуження
+    t.penup()
+    t.setposition(start_pos)
+    t.setheading(start_heading)
+    t.pendown()
+
+    # 5) Права гілка: квадрат повернутий на -(90-angle)
+    t.right(90 - angle)
+    right_size = size * math.sin(math.radians(angle))
+    pythagoras_tree(t, right_size, depth - 1, angle)
+
+    # 6) Повертаємося у початкову точку поточного квадрату (для коректної рекурсії)
+    t.penup()
+    # Ми стоїмо на верхній стороні; повернемось до нижнього лівого кута поточного квадрату:
+    t.setposition(start_pos)
+    t.setheading(start_heading)
+    t.right(90)
+    t.forward(size)
+    t.left(90)
+    t.backward(size)
+    t.pendown()
 
 def main():
-    try:
-        level = int(input("Введи рівень рекурсії (наприклад 8-12): ").strip())
-    except ValueError:
-        print("Будь ласка, введи ціле число.")
-        return
+    depth = int(input("Введіть рівень рекурсії (наприклад 6..12): ").strip())
 
     screen = turtle.Screen()
-    screen.title("Фрактал: Дерево Піфагора (рекурсія)")
-    screen.setup(width=1000, height=800)
+    screen.title("Дерево Піфагора (Pythagoras Tree)")
 
-    pen = turtle.Turtle()
-    pen.hideturtle()
-    pen.speed(0)  # максимально швидко
-    pen.pensize(1)
+    t = turtle.Turtle()
+    t.hideturtle()
+    t.speed(0)
+    t.pensize(1)
 
-    # Стартові параметри
-    start_x, start_y = -50, -250
-    start_size = 120
-    start_angle = 0
+    # Стартова позиція
+    t.penup()
+    t.goto(-80, -250)
+    t.setheading(0)
+    t.pendown()
 
-    pythagoras_tree(start_x, start_y, start_size, start_angle, level, pen)
+    # Базовий квадрат
+    pythagoras_tree(t, size=120, depth=depth, angle=45)
 
-    turtle.done()
+    screen.mainloop()
 
 if __name__ == "__main__":
     main()
